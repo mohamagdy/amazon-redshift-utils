@@ -836,7 +836,7 @@ def analyze(table_info):
 
                     copy_sql = """
                         COPY {0}."{1}"
-                        FROM '{2}' 
+                        FROM '{2}manifest' 
                         access_key_id '{3}'
                         secret_access_key '{4}'
                         manifest delimiter '|' removequotes escape;
