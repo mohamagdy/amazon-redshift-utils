@@ -48,6 +48,10 @@ SYSTABLE_CLEANUP_AFTER_DAYS = "systable_cleanup_after_days"
 STATEMENT_TIMEOUT = "statement_timeout"
 S3_UNLOAD_LOCATION = "s3_unload_location"
 S3_UNLOAD_ROLE_ARN = "s3_unload_role_arn"
+COPY_TO_S3 = "copy_to_s3"
+S3_FULL_PATH = "s3_full_path"
+AWS_ACCESS_KEY_ID = "aws_access_key_id"
+AWS_SECRET_ACCESS_KEY = "asw_secret_access_key"
 
 config_aliases = {
     "db": ["db", "DatabaseName"],
