@@ -114,6 +114,10 @@ ssl = False
 suppress_cw = None
 cw = None
 statement_timeout = '1200000'
+copy_to_s3 = False
+s3_full_path = None
+aws_access_key_id = None
+asw_secret_access_key = None
 
 
 def execute_query(string):
@@ -804,18 +808,39 @@ def analyze(table_info):
                     source_columns = '*'
                     mig_columns = ''
 
-                insert = 'insert into %s."%s" %s select %s from %s."%s"' % (set_target_schema,
-                                                                            target_table,
-                                                                            mig_columns,
-                                                                            source_columns,
-                                                                            schema_name,
-                                                                            table_name)
-                if len(table_sortkeys) > 0:
-                    insert = "%s order by \"%s\";" % (insert, ",".join(table_sortkeys).replace(',', '\",\"'))
-                else:
-                    insert = "%s;" % (insert)
+                if not copy_to_s3:
+                    insert = 'insert into %s."%s" %s select %s from %s."%s"' % (set_target_schema,
+                                                                                target_table,
+                                                                                mig_columns,
+                                                                                source_columns,
+                                                                                schema_name,
+                                                                                table_name)
+                    if len(table_sortkeys) > 0:
+                        insert = "%s order by \"%s\";" % (insert, ",".join(table_sortkeys).replace(',', '\",\"'))
+                    else:
+                        insert = "%s;" % (insert)
 
-                statements.extend([insert])
+                    statements.extend([insert])
+                else:
+                    unload_sql = """
+                        UNLOAD ('SELECT * FROM {0}."{1}"')   
+                        to '{2}' 
+                        access_key_id '{3}'
+                        secret_access_key '{4}'
+                        manifest delimiter '|' addquotes escape allowoverwrite;
+                    """.format(schema_name, table_name, s3_full_path, aws_access_key_id, asw_secret_access_key)
+
+                    statements.extend([unload_sql])
+
+                    copy_sql = """
+                        COPY {0}."{1}"
+                        FROM '{2}' 
+                        access_key_id '{3}'
+                        secret_access_key '{4}'
+                        manifest delimiter '|' removequotes escape;
+                    """.format(set_target_schema, target_table, s3_full_path, aws_access_key_id, asw_secret_access_key)
+
+                    statements.extend([copy_sql])
 
                 # analyze the new table
                 analyze = 'analyze %s."%s";' % (set_target_schema, target_table)
@@ -941,6 +966,10 @@ def configure(**kwargs):
     global suppress_cw
     global cw
     global statement_timeout
+    global copy_to_s3
+    global s3_full_path
+    global aws_access_key_id
+    global asw_secret_access_key
 
     # set variables
     for key, value in kwargs.items():
@@ -1237,6 +1266,20 @@ def main(argv):
                     args[config_constants.STATEMENT_TIMEOUT] = str(int(value))
                 except ValueError:
                     pass
+        elif arg == "--copy-to-s3":
+            if value == 'true' or value == 'True':
+                args[config_constants.COPY_TO_S3] = True
+            else:
+                args[config_constants.COPY_TO_S3] = False
+        elif arg == "--s3-full-path":
+            if value != '' and value is not None:
+                args[config_constants.S3_FULL_PATH] = value
+        elif arg == "--aws-access-key-id":
+            if value != '' and value is not None:
+                args[config_constants.AWS_ACCESS_KEY_ID] = value
+        elif arg == "--aws-secret-access-key":
+            if value != '' and value is not None:
+                args[config_constants.AWS_SECRET_ACCESS_KEY] = value
         else:
             print("Unsupported Argument " + arg)
             usage()
