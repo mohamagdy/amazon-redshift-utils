@@ -830,6 +830,8 @@ def analyze(table_info):
                         manifest delimiter '|' addquotes escape allowoverwrite;
                     """.format(schema_name, table_name, s3_full_path, aws_access_key_id, asw_secret_access_key)
 
+                    print("Unload to S3 path: {0}".format(s3_full_path))
+
                     statements.extend([unload_sql])
 
                     copy_sql = """
@@ -839,6 +841,8 @@ def analyze(table_info):
                         secret_access_key '{4}'
                         manifest delimiter '|' removequotes escape;
                     """.format(set_target_schema, target_table, s3_full_path, aws_access_key_id, asw_secret_access_key)
+
+                    print("Copy from S3 path: {0}".format(s3_full_path))
 
                     statements.extend([copy_sql])
 
